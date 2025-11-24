@@ -1,0 +1,67 @@
+name: Random Pip Package Install and Clean
+
+on:
+  schedule:
+    # Runs every 15 minutes on weekdays (Monday-Friday)
+    - cron: '*/15 * * * 1-5'
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  install-and-clean:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: '' # Disable pip caching
+
+      - name: Clean pip cache
+        run: |
+          pip cache purge
+          echo "Pip cache cleared"
+
+      - name: Install random packages
+        run: |
+          # List of packages to choose from
+          PACKAGES=(
+            "hbat"
+            "axioms-drf-py"
+            "axioms-fastapi"
+            "axioms-flask-py"
+          )
+
+          # Number of random packages to install (change this value as needed)
+          NUM_PACKAGES=3
+
+          # Shuffle and select random packages
+          SELECTED=($(shuf -e "${PACKAGES[@]}" -n $NUM_PACKAGES))
+
+          echo "Selected packages for this run:"
+          printf '%s\n' "${SELECTED[@]}"
+
+          echo "Installing packages..."
+          pip install --no-cache-dir "${SELECTED[@]}"
+          echo "Packages installed successfully"
+
+      - name: List installed packages
+        run: pip list
+
+      - name: Clean up
+        run: |
+          echo "Cleaning up..."
+          pip freeze > installed_packages.txt
+          pip uninstall -y -r installed_packages.txt
+          pip cache purge
+          rm -f installed_packages.txt
+          echo "Cleanup completed"
+
+      - name: Verify cleanup
+        run: |
+          echo "Verifying cleanup..."
+          pip list
+          echo "Workflow completed successfully"
